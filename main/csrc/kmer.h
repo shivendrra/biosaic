@@ -24,14 +24,12 @@ typedef struct {
   int* token_to_id;
 } KMer;
 
-extern "C" {
-  KMer* create_tokenizer(int kmers);
-  void tokenize_sequence(KMer* tokenizer, const char* data, char*** kmers, int* n_kmers);
-  void build_vocab(KMer* tokenizer);
-  int* encode_sequence(KMer* tokenizer, const char* seq, int* encoded_size);
-  char* decode_sequence(KMer* tokenizer, const int* encoded_seq, int encoded_size);
-  void save(KMer* tokenizer, const char* path);
-  void free_tokenizer(KMer* tokenizer);
-}
+KMer* create_tokenizer(int kmers);
+void tokenize_sequence(KMer* tokenizer, const char* data, char*** kmers, int* n_kmers);
+void build_vocab(KMer* tokenizer);
+int* encode_sequence(KMer* tokenizer, const char* seq, int* encoded_size);
+char* decode_sequence(KMer* tokenizer, const int* encoded_seq, int encoded_size);
+void save(KMer* tokenizer, const char* path);
+void free_tokenizer(KMer* tokenizer);
 
 #endif  //!__KMER__H__
