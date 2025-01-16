@@ -15,7 +15,7 @@ KMer* create_tokenizer(int kmers) {
   
   // m -> mask token; p -> padding token; b -> begin; s -> separate; e -> end
   // not included the classification token, still tryna understand why tf is it used
-  strcpy(self->special_tokens, "MPBSE");
+  strcpy(self->special_tokens, " MPBSE");
   if (kmers > 6) {
     fprintf(stderr, "KMer size till 6 is supported for now due memory allocation issues\n");
     exit(1);
@@ -33,6 +33,7 @@ KMer* create_tokenizer(int kmers) {
   self->vocab_size = vocab_size + strlen(self->special_tokens);
   self->id_to_token = (char**)malloc((vocab_size + 1) * sizeof(char*));
   self->token_to_id = (int*)malloc((vocab_size + 1) * sizeof(int));
+  printf("\n\t------------Biosaic KMer Tokenizer Initialized Successfully!------------\n\n");
   return self;
 }
 
