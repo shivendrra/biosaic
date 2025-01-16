@@ -1,6 +1,6 @@
 import ctypes
 from ctypes import c_int, c_char_p, byref, POINTER
-from cbase import libkmer, CKMer
+from .cbase import libkmer, CKMer
 
 class KMer(CKMer):
   def __init__(self, kmer:int= 4):
