@@ -41,3 +41,29 @@ libkmer.save.argtypes = [ctypes.POINTER(CKMer), ctypes.c_char_p]
 libkmer.save.restype = None
 libkmer.free_tokenizer.argtypes = [ctypes.POINTER(CKMer)]
 libkmer.free_tokenizer.restype = None
+
+# character level tokenizer starts from here
+# interface to ``perchar.c``
+
+libchar_path = os.path.join(os.path.dirname(__file__), "build/libchar.so")
+libchar = ctypes.CDLL(libchar_path)
+
+MAX_CHARS = 256
+MAX_STRINGS_SIZE = 1000
+
+class CChar(ctypes.Structure):
+  _fields_ = [
+    ("chars", ctypes.c_char_p * MAX_CHARS),
+    ("vocab_size", ctypes.c_size_t),
+    ("str_to_idx", ctypes.c_int * MAX_CHARS),
+    ("idx_to_str", ctypes.c_char_p * MAX_CHARS)
+  ]
+
+libchar.init_tokenizer.argtypes = None
+libchar.init_tokenizer.restype = ctypes.POINTER(CChar)
+libchar.encode_sequence.argtypes = [ctypes.POINTER(CChar), ctypes.c_char_p, ctypes.POINTER(ctypes.c_size_t)]
+libchar.encode_sequence.restype = ctypes.POINTER(c_int)
+libchar.decode_sequence.argtypes = [ctypes.POINTER(CChar), ctypes.POINTER(c_int), ctypes.c_size_t]
+libchar.decode_sequence.restype = c_char_p
+libchar.free_tokenizer.argtypes = [ctypes.POINTER(CChar)]
+libchar.free_tokenizer.restype = None
