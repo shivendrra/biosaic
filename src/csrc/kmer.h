@@ -1,10 +1,10 @@
 /*
   kmer.h
-  - main ``KMer`` class codes in this file
-  - tokenizes the dna data based on the vocab & respective kmer size
-  - compile it as:
-    -- '.so': g++ -shared -fPIC -o libkmer.so kmer.c / for linux
-    -- '.dll': g++ -shared -o libkmer.dll kmer.c / for windows
+  * main ``KMer`` class codes in this file
+  * tokenizes the dna data based on the vocab & respective kmer size
+  * compile it as:
+    ** '.so': gcc -shared -fPIC -o libkmer.so kmer.c / for linux
+    ** '.dll': gcc -shared -o libkmer.dll kmer.c / for windows
 */
 
 #ifndef __KMER__H__
@@ -14,6 +14,7 @@
 #define  SPECIAL_TOKEN_COUNT  6
 #define  MAX_TOKEN_SIZE  6
 #define  MAX_VOCAB_SIZE  19530  // supporting till kmer size of 6
+#define CHUNK_SIZE 100000  // defining chunk size for large sequence handling
 
 typedef struct {
   char chars[MAX_BASE_CHARS];
