@@ -10,27 +10,26 @@
 #ifndef __KMER__H__
 #define __KMER__H__
 
-#define  MAX_BASE_CHARS  6
-#define  SPECIAL_TOKEN_COUNT  6
+#define  BASE_VOCAB_SIZE  6
+#define  MAX_SPECIAL_TOKENS  6
+#define  MAX_MERGES  10000
 #define  MAX_TOKEN_SIZE  6
-#define  MAX_VOCAB_SIZE  19530  // supporting till kmer size of 6
-#define CHUNK_SIZE 100000  // defining chunk size for large sequence handling
 
 typedef struct {
-  char chars[MAX_BASE_CHARS];
-  char special_tokens[SPECIAL_TOKEN_COUNT];
-  int kmers;
+  char base_chars[BASE_VOCAB_SIZE];
+  char special_tokens[MAX_SPECIAL_TOKENS];
+  int kmer_size;
   int vocab_size;
-  char** id_to_token;
-  int* token_to_id;
+  char** ids_to_token;
+  int* token_to_ids;
 } KMer;
 
-KMer* create_tokenizer(int kmers);
-void tokenize_sequence(KMer* tokenizer, const char* data, char*** kmers, int* n_kmers);
+KMer* initialize_tokenizer(int kmer_size);
+int tokenize_sequence(KMer* tokenizer, const char* data, char*** kmers);
 void build_vocab(KMer* tokenizer);
-int* encode_sequence(KMer* tokenizer, const char* seq, int* encoded_size);
-char* decode_sequence(KMer* tokenizer, const int* encoded_seq, int encoded_size);
+int* encode_sequence(KMer* tokenizer, const char* sequence, int* ids_size);
+char* decode_sequence(KMer* tokenizer, const int* ids, int ids_size);
 void save(KMer* tokenizer, const char* path);
 void free_tokenizer(KMer* tokenizer);
 
-#endif  //!__KMER__H__
+#endif
