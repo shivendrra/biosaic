@@ -6,17 +6,19 @@ class KMer(CKMer):
   def __init__(self, kmer:int= 4):
     assert isinstance(kmer, int), "KMer value must be a positive integer"
     self._core_tokenizer = libkmer.create_tokenizer(c_int(kmer))
+    if not self._core_tokenizer:
+      raise MemoryError("Failed to initialize KMer tokenizer")
     libkmer.build_vocab(self._core_tokenizer)
+    self.tokenized_size = 0
 
   def _shred(self, seq: str):
     # basic code that splits the string into chunks according to spcified KMer size
     # leaves the special tokens as a single string, doesn't include them in the chunks
     #     "BACTAGAAAMCTTE" -> ["B", "ACTA", "GAAA", "M", "CTT", "E"]
     if seq is not None:
-      n_kmers = c_int(0)
       kmers_ptr = POINTER(c_char_p)()
-      libkmer.tokenize_sequence(self._core_tokenizer, seq.encode("utf-8"), byref(kmers_ptr), byref(n_kmers))
-      kmers = [kmers_ptr[i].decode("utf-8") for i in range(n_kmers.value)]
+      self.tokenized_size = libkmer.tokenize_sequence(self._core_tokenizer, seq.encode("utf-8"), byref(kmers_ptr))
+      kmers = [kmers_ptr[i].decode("utf-8") for i in range(self.tokenized_size)]
       return kmers
     else:
       raise ValueError("Sequence can't be NULL or Empty! Must provide some value")

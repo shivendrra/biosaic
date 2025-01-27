@@ -12,18 +12,17 @@ MAX_TOKEN_SIZE = 6
 # defining KMer structure (partial, as we're using it via functions)
 class CKMer(ctypes.Structure):
   _fields_ = [
-    ("chars", ctypes.c_char_p * BASE_VOCAB_SIZE),
+    ("base_chars", ctypes.c_char_p * BASE_VOCAB_SIZE),
     ("special_tokens", ctypes.c_char_p * MAX_SPECIAL_TOKENS),
-    ("kmers", ctypes.c_int),
-    ("vocab_size", ctypes.c_int),
-    ("id_to_token", ctypes.c_char_p),
-    ("token_to_id", ctypes.c_int)
+    ("kmer_size", c_int),
+    ("vocab_size", c_int),
+    ("ids_to_token", c_char_p),
+    ("token_to_ids", c_int),
   ]
 
 # function prototypes
 libkmer.create_tokenizer.argtypes = [ctypes.c_int]
 libkmer.create_tokenizer.restype = ctypes.POINTER(CKMer)
-# libkmer.tokenize_sequence.argtypes = [ctypes.POINTER(CKMer), ctypes.c_char_p, ctypes.POINTER(ctypes.POINTER(ctypes.c_char_p)), ctypes.POINTER(ctypes.c_int)]
 libkmer.tokenize_sequence.argtypes = [
   ctypes.POINTER(CKMer),  # Pointer to CKMer structure
   ctypes.c_char_p,        # Input sequence (C string)

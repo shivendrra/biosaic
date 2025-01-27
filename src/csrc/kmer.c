@@ -5,7 +5,7 @@
 #include "inc/tqdm.h"
 #include "kmer.h"
 
-KMer* initialize_tokenizer(int kmer_size) {
+KMer* create_tokenizer(int kmer) {
   KMer* self = (KMer*)malloc(sizeof(KMer));
   if (!self) {
     fprintf(stderr, "Memory allocation for KMer failed!\n");
@@ -21,25 +21,24 @@ KMer* initialize_tokenizer(int kmer_size) {
   // not included the classification token, still tryna understand why tf is it used
   strcpy(self->special_tokens, " MPBSE");
 
-  if (kmer_size > 6) {
+  if (kmer > 6) {
     fprintf(stderr, "Only KMer size till 6 is supported for now due to memory allocation issues.\n");
     free(self);
     exit(EXIT_FAILURE);
   }
-  self->kmer_size = kmer_size;
+  self->kmer_size = kmer;
 
-  // vocab_size is basically ``summation from i=0 to n=chars_size len(self->chars)^kmers``, since we're trying to create each
+  // vocab_size is basically ``summation from i=0 to n=chars_size len(self->base_chars)^kmer_size``, since we're trying to create each
   // possible token -> idx pair till the declared KMer size
   // so if kmer = 4:
   //        vocab_size = 5 + 25 + 125 + 625 = 780
   int vocab_size = 0;
-  for (int i = 0; i < kmer_size; i++) {
+  for (int i = 0; i < kmer; i++) {
     vocab_size += pow(strlen(self->base_chars), i);
   }
   self->vocab_size = vocab_size + strlen(self->special_tokens);
   self->ids_to_token = (char**)malloc(self->vocab_size * sizeof(char*));
   self->token_to_ids = (int*)malloc(self->vocab_size * sizeof(int));
-
   if (!self->ids_to_token || !self->token_to_ids) {
     fprintf(stderr, "Memory allocation failed!\n");
     free(self);
@@ -47,6 +46,68 @@ KMer* initialize_tokenizer(int kmer_size) {
   }
   printf("\n\t------------Biosaic KMer Tokenizer Initialized Successfully!------------\n\n");
   return self;
+}
+
+int tokenize_sequence(KMer* tokenizer, const char* data, char*** kmer_size) {
+  if (!tokenizer) {
+    fprintf(stderr, "No instance of KMer class found!");
+    exit(EXIT_FAILURE);
+  }
+  int len = strlen(data), count = 0;
+  int special_len = strlen(tokenizer->special_tokens);
+  *kmer_size = (char**)malloc((len + 1) * sizeof(char*)); // allocating enough space for tokens
+  if (!kmer_size) {
+    fprintf(stderr, "Memory allocation failed!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // checking for special token at the current position
+  for (int i = 0; i < len;) {
+    int j = i;
+    int is_special = 0;
+    for (int s = 0; s < special_len; s++) {
+      if (data[j] == tokenizer->special_tokens[s]) {
+        is_special = 1;
+        break;
+      }
+    }
+
+    if (is_special) { // handle special token as a separate substring
+      (*kmer_size)[count] = (char*)malloc(2 * sizeof(char));
+      if (!(*kmer_size)[count]) {
+        fprintf(stderr, "Memory allocation failed!\n");
+        exit(EXIT_FAILURE);
+      }
+      (*kmer_size)[count][0] = data[j];
+      (*kmer_size)[count][1] = '\0';
+      count++;
+      i++;  // move to the next character
+    } else {  // extract sub-token until a special token is found or k-mer length is reached
+      while (j < len && j - i < tokenizer->kmer_size) {
+        is_special = 0;
+        for (int s = 0; s < special_len; s++) {
+          if (data[j] == tokenizer->special_tokens[s]) {
+            is_special = 1;
+            break;
+          }
+        }
+        if (is_special) break;  // stop if the token is found
+        j++;
+      }
+
+      int sub_len = j - i;
+      (*kmer_size)[count] = (char*)malloc((sub_len + 1) * sizeof(char));
+      if (!(*kmer_size)[count]) {
+        fprintf(stderr, "Memory allocation failed!\n");
+        exit(EXIT_FAILURE);
+      }
+      strncpy((*kmer_size)[count], data + i, sub_len);
+      (*kmer_size)[count][sub_len] = '\0';
+      count++;
+      i = j;  // move to next position
+    }
+  }
+  return count;
 }
 
 void build_vocab(KMer* tokenizer) {
@@ -67,12 +128,12 @@ void build_vocab(KMer* tokenizer) {
   }
 
   tqdm bar; // initialized tqdm bar
-  init_tqdm(&bar, "Building the vocab: ", false, "KMers", true, tokenizer->vocab_size - strlen(tokenizer->special_tokens) , 1);
+  init_tqdm(&bar, "Building the vocab: ", false, "pairs", true, tokenizer->vocab_size - strlen(tokenizer->special_tokens), 1);
 
   // adding the base_char pairs mapping
   for (int k = 0; k <= max_k; k++) {
     int* indices = (int*)malloc(k * sizeof(int));
-    char* combination = malloc((k + 1) * sizeof(char));
+    char* combination = (char*)malloc((k + 1) * sizeof(char));
     if (!indices || !combination) {
       fprintf(stderr, "Memory allocation failed!\n");
       exit(EXIT_FAILURE);
@@ -85,9 +146,14 @@ void build_vocab(KMer* tokenizer) {
         combination[i] = chars[indices[i]];
       }
       tokenizer->ids_to_token[index] = strdup(combination);
+      if (!tokenizer->ids_to_token[index]) {
+        fprintf(stderr, "Memory allocation failed for token at index %d\n", index);
+        exit(EXIT_FAILURE);
+      }
       tokenizer->token_to_ids[index] = index;
       index++;
       update_tqdm(&bar, 1, index == tokenizer->vocab_size);
+      fflush(stdout); // clean the cmd window
 
       int i;
       for (i = k - 1; i >= 0; i++) {
@@ -105,73 +171,13 @@ void build_vocab(KMer* tokenizer) {
   close_tqdm(&bar);
 }
 
-int tokenize_sequence(KMer* tokenizer, const char* data, char*** kmers) {
-  if (!tokenizer) {
-    fprintf(stderr, "No instance of KMer class found!");
-    exit(EXIT_FAILURE);
-  }
-  int len = strlen(data), count = 0;
-  int special_len = strlen(tokenizer->special_tokens);
-  *kmers = (char**)malloc(len * sizeof(char*)); // allocating enough space for tokens
-  if (!kmers) {
-    fprintf(stderr, "Memory allocation failed!\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = 0; i < len;) {
-    int j = i;
-    int is_special = 0;
-    for (int s = 0; s < special_len; s++) {
-      if (data[j] == tokenizer->special_tokens[s]) {
-        is_special = 1;
-        break;
-      }
-    }
-
-    if (is_special) {
-      (*kmers)[count] = (char*)malloc(2 * sizeof(char));
-      if (!(*kmers)[count]) {
-        fprintf(stderr, "Memory allocation failed!\n");
-        exit(EXIT_FAILURE);
-      }
-      (*kmers)[count][0] = data[j];
-      (*kmers)[count][1] = '\0';
-      count++, i++;
-    } else {
-      while (j < len && j - i < tokenizer->kmer_size) {
-        is_special = 0;
-        for (int s = 0; s < special_len; s++) {
-          if (data[j] == tokenizer->special_tokens[s]) {
-            is_special = 1;
-            break;
-          }
-        }
-        if (is_special) break;
-        j++;
-      }
-
-      int sub_len = j - i;
-      (*kmers)[count] = (char*)malloc((sub_len + 1) * sizeof(char));
-      if (!(*kmers)[count]) {
-        fprintf(stderr, "Memory allocation failed!\n");
-        exit(EXIT_FAILURE);
-      }
-      strncpy((*kmers)[count], data + i, sub_len);
-      (*kmers)[count][sub_len] = '\0';
-      count++;
-      i = j;
-    }
-  }
-  return count;
-}
-
 int* encode_sequence(KMer* tokenizer, const char* sequence, int* ids_size) {
   if (!tokenizer || !sequence || ids_size == NULL) {
     fprintf(stderr, "Error: Invalid arguments to encode.\n");
     return NULL;
   }
-  char** kmers;
-  int tokenize_size = tokenize_sequence(tokenizer, sequence, &kmers);
+  char** kmer_size;
+  int tokenize_size = tokenize_sequence(tokenizer, sequence, &kmer_size);
   *ids_size = tokenize_size;
   int* encoded_sequence = (int*)malloc(tokenize_size * sizeof(int));
   if (!encoded_sequence) {
@@ -186,14 +192,14 @@ int* encode_sequence(KMer* tokenizer, const char* sequence, int* ids_size) {
       break;
     }
     if (id == -1) {
-      fprintf(stderr, "Error: Unknown tokeni '%s'\n", kmers[i]);
+      fprintf(stderr, "Error: Unknown tokeni '%s'\n", kmer_size[i]);
       encoded_sequence[i] = -1;
     } else {
       encoded_sequence[i] = id;
     }
-    free(kmers[i]);
+    free(kmer_size[i]);
   }
-  free(kmers);
+  free(kmer_size);
   return encoded_sequence;
 }
 

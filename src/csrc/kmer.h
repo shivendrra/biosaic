@@ -24,7 +24,7 @@ typedef struct {
   int* token_to_ids;
 } KMer;
 
-KMer* initialize_tokenizer(int kmer_size);
+KMer* create_tokenizer(int kmer_size);
 int tokenize_sequence(KMer* tokenizer, const char* data, char*** kmers);
 void build_vocab(KMer* tokenizer);
 int* encode_sequence(KMer* tokenizer, const char* sequence, int* ids_size);
