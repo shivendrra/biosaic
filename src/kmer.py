@@ -43,16 +43,65 @@ class KMerPy:
     return encoded_tokens
 
   def decode(self, ids):
+    chars = self.ids_to_chars(ids)
+    detokenized_data = self.detokenize(chars)
+    return detokenized_data
+
+  def ids_to_chars(self, ids:list[int]):
+    """returns the list containing chars mapped to ids
+
+    Args:
+      ids (List[int]): list containing only output tokens from a model or just ids
+    Returns:
+      List: list with the respective chars
+    """
+    assert isinstance(ids, list) and len(ids) > 0, "ids must be a non-empty list"
+    assert type(ids[0]) == int, "only accepts encoded ids"
     chars = []
     for i in ids:
       chars.append(self.ids_to_token[i])
-    detokenized_data = self.detokenize(chars)
-    return detokenized_data
+    return chars
+
+  def chars_to_ids(self, chars:list[str]):
+    """returns the list containing ids mapped to chars
+
+    Args:
+      chars (List[str]): list containing tokenized chars for id mapping
+    Returns:
+      Lits: list with the respective ids
+    """
+    assert isinstance(chars, list) and len(chars) > 0, "ids must be a non-empty list"
+    assert type(chars[0]) == str, "only accepts tokenized kmer pairs"
+    ids = []
+    for i in chars:
+      ids.append(self.vocab[i])
+    return ids
+  
+  def verify(self, ids, file=None):
+    """returns a list containing true/false values for respective matching kmers
+      also saves them to a file, as needed by user
+
+    Args:
+      ids (List[str]): list containing tokenized chars
+      file (Optional|None): file path
+    Returns:
+      dictonary: dictonary containing mapped true/false pairs for verification
+    """
+    verified = []
+    ids = self.ids_to_chars(ids) if isinstance(ids[0], int) else ids
+    for i in range(len(ids) - 1):
+      match = ids[i][1:] == ids[i + 1][:-1]
+      verified.append({"kmer1": ids[i], "kmer2": ids[i + 1], "match": match})
+    if file:
+      file_path = f"{file}/verify.json"
+      with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(verified, f)
+    return verified
 
   def save(self, path:str):
     # saving the vocab model as a json file for easy saving & retrieval
     vocab_file = f"{path}/base_{self.kmer_size}k.json"
-    with open(vocab_file, 'w') as f:
+    with open(vocab_file, 'w', encoding='utf-8') as f:
       json.dump(self.vocab, f)
     print("saved the vocab!")
 
