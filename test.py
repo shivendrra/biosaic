@@ -1,14 +1,26 @@
-from .src import KMer
+from src.kmer import KMerPy
 
-tokenizer = KMer(kmer=4)
-sequence = "BAACATGTCCTGCATGGCATTAMGTTTGTTGGGGCAGTGCCCGPGATAGCATCAACGCTGCGCTGATTTGCCGTGGCGAGAAAE"
-print("shreded sequence: ", tokenizer._shred(sequence))
-encoded = tokenizer.encode(sequence)
-decoded = tokenizer.decode(encoded)
+token = KMerPy(kmer_size=4)
 
-print("Encoded sequence:", encoded)
-print("Decoded sequence:", decoded)
-print("decoded string matches the original string:", decoded == sequence)
+# with open("file.txt", "r", encoding="utf-8") as f:
+#   sequence = f.read()
+#   print("sequence length: ", len(sequence))
+#   f.close()
 
-tokenizer.save("./vocab")
-del tokenizer
+sequence = "AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGAACTG"
+token.build_vocab()
+token.save("./model")
+token.load("./model/base_4k.json")
+encoded = token.encode(sequence)
+decoded = token.decode(encoded)
+
+print(encoded)
+print(decoded)
+print(decoded == sequence)
+
+tokenized = token.tokenize(sequence)
+ids = token.chars_to_ids(tokenized)
+chars = token.ids_to_chars(ids)
+print(ids)
+print(chars)
+print(token.verify(tokenized, 'model'))
