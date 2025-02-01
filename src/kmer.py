@@ -24,10 +24,10 @@ class KMerPy:
 
   def build_vocab(self):
     index = 0
-    for special in self.special_tokens:
-      self.vocab[special] = index
-      self.ids_to_token.append(special)
-      index += 1
+    # for special in self.special_tokens:
+    #   self.vocab[special] = index
+    #   self.ids_to_token.append(special)
+    #   index += 1
 
     chars = sorted(self.base_chars)
     for k in range(1, self.kmer_size + 1):
