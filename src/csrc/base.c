@@ -20,7 +20,6 @@ void init_tokenizer(BaseTokenizer* tokenizer, int kmer_size) {
   for (int i = 0; i < kmer_size; i++) {
     vocab_size += pow(strlen(BASE_CHARS), i);
   }
-  tokenizer->vocab_size += strlen(SPECIAL_CHARS);
   tokenizer->entries = malloc(vocab_size * sizeof(KmerEntry));
 }
 
@@ -31,20 +30,8 @@ void build_vocab(BaseTokenizer* tokenizer) {
   }
 
   int index = 0;
-
-  for (int i = 0; i < strlen(SPECIAL_CHARS); i++) {
-    tokenizer->entries[index].idx = index;
-    tokenizer->entries[index].val = (char*)malloc(2); // allocating space for token + '\0'
-    if (!tokenizer->entries[index].val) {
-      fprintf(stderr, "Memory allocation for special token failed at index %d\n", index);
-      exit(EXIT_FAILURE);
-    }
-    tokenizer->entries[index].val[0] = SPECIAL_CHARS[i];
-    tokenizer->entries[index].val[1] = '\0';
-    index++;
-  }
   tqdm bar; // initialized tqdm bar
-  init_tqdm(&bar, "Building the vocab: ", false, "KMers", true, tokenizer->vocab_size - strlen(SPECIAL_CHARS) , 1);
+  init_tqdm(&bar, "Building the vocab: ", false, "KMers", true, tokenizer->vocab_size, 1);
 
   for (int k = 1; k <= tokenizer->kmer_size; k++) {
     int* indices = (int*)malloc(k * sizeof(int));

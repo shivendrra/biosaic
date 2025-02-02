@@ -14,7 +14,6 @@
 #define  MAX_TOKEN_SIZE  6
 
 #define  BASE_CHARS  "ATCG\n"
-#define  SPECIAL_CHARS  "MPSE "
 
 typedef struct {
   int idx;
@@ -29,8 +28,8 @@ typedef struct {
 
 void init_tokenizer(BaseTokenizer* tokenizer, int kmer_size);
 void build_vocab(BaseTokenizer* tokenizer);
-void save_tokenizer(BaseTokenizer* tokenizer, const char* file_path);
-void load_tokenizer(BaseTokenizer* tokenizer, const char* model_file);
+// void save_tokenizer(BaseTokenizer* tokenizer, const char* file_path);
+// void load_tokenizer(BaseTokenizer* tokenizer, const char* model_file);
 void free_tokenizer(BaseTokenizer* tokenizer);
 
 #endif  //!__BASE__H__
