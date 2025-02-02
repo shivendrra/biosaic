@@ -3,19 +3,11 @@ class ModelConfig:
   in_dim: int= 4
   n_embed: int=512
   beta: float=0.25
-  n_heads: int= 4
-  n_layers: int= 3
+  n_heads: int= 8
+  n_layers: int= 8
 
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
-
-DNA_VOCAB = {"A": 0, "T": 1, "C": 2, "G": 3}
-
-def dna_to_onehot(seq):
-  seq_idx = [DNA_VOCAB[char] for char in seq]
-  one_hot = F.one_hot(torch.tensor(seq_idx), num_classes=4)
-  return one_hot.float()
 
 class encoder(nn.Module):
   def __init__(self, _in, d_model, n_layers, n_heads):
@@ -27,16 +19,16 @@ class encoder(nn.Module):
   
   def forward(self, x):
     x = self.embed(x)
-    x = x.permute(1, 0, 2)
-    z_e = self.encoder(x)
-    return z_e.permute(1, 0, 2)
+    x = x.permute(1, 0, 2)  # (L, B, d_model)
+    z_e = self.encoder(x) # Transformer encoding
+    return z_e.permute(1, 0, 2) # Back to (B, L, 4)
 
 class decoder(nn.Module):
   def __init__(self, d_model, _out, n_layers, n_heads):
     super().__init__()
     self.decoder = nn.TransformerDecoder(
       nn.TransformerDecoderLayer(d_model=d_model, nhead=n_heads),
-      n_layers=n_layers
+      num_layers=n_layers
     )
     self.fc_out = nn.Linear(d_model, _out)  # Output logits (4 classes)
 
