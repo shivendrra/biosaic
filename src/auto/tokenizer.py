@@ -22,6 +22,11 @@ class tokenizer:
     one_hot = F.one_hot(torch.tensor(seq_idx), num_classes=4)
     return one_hot.float()
 
+  def onehot_to_dna(self, logits):
+    decoded_out = torch.argmax(logits, dim=-1)
+    decoded = ''.join(self.ids_to_dna[idx.item()] for idx in decoded_out.squeeze(0))
+    return decoded
+
   def encode(self, seq: str):
     one_hot_seq = self.dna_to_onehot(seq).unsqueeze(0).to(device)
     _, _, tokens = self.model(one_hot_seq)
@@ -33,6 +38,5 @@ class tokenizer:
 
     with torch.no_grad():
       logits = self.model.decoder(z_q)
-      decoded_out = torch.argmax(logits, dim=-1)
-    decoded = ''.join(self.ids_to_dna[idx.item()] for idx in decoded_out.squeeze(0))
+    decoded = self.onehot_to_dna(logits)
     return decoded
