@@ -1,6 +1,6 @@
-from src.kmer import KMerPy
+from src import KMer
 
-token = KMerPy(kmer_size=4)
+token = KMer(kmer_size=4)
 
 # with open("file.txt", "r", encoding="utf-8") as f:
 #   sequence = f.read()
