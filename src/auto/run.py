@@ -1,7 +1,7 @@
 import torch
 from torch.nn import functional as F
 from .model import DNA_VQVAE, ModelConfig
-from .dataset import dna_to_onehot, fix_dna_lines
+from .dataset import Dataset
 import matplotlib.pyplot as plt
 
 # setup
@@ -13,9 +13,8 @@ optimizer = torch.optim.Adam(_model.parameters(), lr=1e-5)
 
 # train-test split
 file_path = "/content/drive/MyDrive/dna_data.txt"
-dataset = fix_dna_lines(file_path)
-train_size = int(0.8 * len(dataset))
-train_data, val_data = dataset[:train_size], dataset[train_size:]
+data = Dataset(file_path)
+train_data, val_data = data.train_test_split(ratio=0.85)
 
 epochs = 2000
 loss_history = []
@@ -29,8 +28,8 @@ learning_rate = 1e-5
 def get_batch(split):
   data = train_data if split == 'train' else val_data
   ix = torch.randint(len(data) - block_size, (batch_size,))
-  x = torch.stack([dna_to_onehot(data[i:i+block_size]) for i in ix])  # Convert to one-hot
-  y = torch.stack([dna_to_onehot(data[i+1:i+block_size+1]) for i in ix])  # Shifted target
+  x = torch.stack([data[i:i+block_size] for i in ix])
+  y = torch.stack([data[i+1:i+block_size+1] for i in ix])  # Shifted target
   return x.to("cpu"), y.to("cpu")
 
 @torch.no_grad()
