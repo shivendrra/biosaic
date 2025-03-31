@@ -27,7 +27,6 @@ class Dataset:
     self.train_data = ""
     self.val_data = ""
     self.load_and_format_data()
-    self.train_test_split()
 
   def load_and_format_data(self):
     """
@@ -38,14 +37,14 @@ class Dataset:
         - Converts the string to uppercase"""
     if not os.path.isfile(self.file_path):
       raise FileNotFoundError(f"{self.file_path} does not exist.")
-      
+
     with open(self.file_path, "r", encoding="utf-8") as f:
       raw_lines = f.readlines()
-      
+
     # Remove empty lines, strip whitespace, and join into one continuous string.
     formatted_data = "".join(line.strip() for line in raw_lines if line.strip())
     self.data = formatted_data.upper()
-  
+
   @staticmethod
   def dna_to_onehot(seq):
     """
@@ -58,7 +57,7 @@ class Dataset:
     DNA_VOCAB = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
     # convert each character to an index
     indices = [DNA_VOCAB[char] for char in seq if char in DNA_VOCAB]
-    onehot = F.one_hot(torch.tensor(indices), num_classes=4).float()
+    onehot = F.one_hot(torch.tensor(indices, dtype=torch.long), num_classes=4).float()
     return onehot
 
   def get_batch(self, split, batch_size, block_size, device="cpu"):
@@ -72,13 +71,14 @@ class Dataset:
       Returns:
         Tuple of tensors (x, y) where x is the input batch and y is the target batch
         The target is the input sequence shifted by one character"""
-    data = self.train_data if split == "train" else self.val_data
+    train_data, val_data = self.train_test_split()
+    data = train_data if split == "train" else val_data
     if len(data) < block_size + 1:
       raise ValueError("Data length is less than block size.")
     # randomly choose starting indices
     ix = torch.randint(0, len(data) - block_size, (batch_size,))
-    x = torch.stack([self.dna_to_onehot(data[i:i+block_size]) for i in ix])
-    y = torch.stack([self.dna_to_onehot(data[i+1:i+block_size+1]) for i in ix])
+    x = torch.stack([data[i:i+block_size] for i in ix])
+    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
     return x.to(device), y.to(device)
 
   def train_test_split(self):
@@ -90,8 +90,8 @@ class Dataset:
       raise ValueError("Data is not loaded. Please check the file content.")
 
     split_idx = int(len(self.data) * (1 - self.test_split))
-    self.train_data = self.data[:split_idx]
-    self.test_data = self.data[split_idx:]
+    self.train_data = self.dna_to_onehot(self.data[:split_idx])
+    self.test_data = self.dna_to_onehot(self.data[split_idx:])
     return self.train_data, self.test_data
 
   def get_full_data(self):

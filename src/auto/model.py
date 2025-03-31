@@ -16,7 +16,7 @@ class encoder(nn.Module):
     self.encoder = nn.TransformerEncoder(
       nn.TransformerEncoderLayer(d_model=d_model, nhead=n_heads),
       num_layers=n_layers)
-  
+
   def forward(self, x):
     x = self.embed(x)
     x = x.permute(1, 0, 2)  # (L, B, d_model)
@@ -44,9 +44,9 @@ class Quantizer(nn.Module):
     self.n_embed, self.d_model, self.beta = n_embed, d_model, beta
     self.embeddings = nn.Embedding(n_embed, d_model)
     self.embeddings.weight.data.uniform_(-1.0 / n_embed, 1.0 / n_embed)
-  
+
   def forward(self, z_e):
-    z_e_flat = z_e.view(-1, self.d_model)
+    z_e_flat = z_e.reshape(-1, self.d_model)
     distances = torch.cdist(z_e_flat, self.embeddings.weight)
     encoding_indices = torch.argmin(distances, dim=1)
     z_q = self.embeddings(encoding_indices).view(z_e.shape)
