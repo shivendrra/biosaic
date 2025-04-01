@@ -1,2 +1,1 @@
-from .kmer import KMerPy as KMer
-from .perchar import PerChar
+from .main import DNATokenizer, pre_encoding, pre_model

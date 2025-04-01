@@ -1,30 +1,25 @@
-from src import KMer, PerChar
+from src import DNATokenizer, pre_model, pre_encoding
 
-# token = KMer(kmer_size=4)
-token = PerChar()
+print("available models: ", pre_model)
+print("available encodings: ", pre_encoding)
 
-with open("data/file.txt", "r", encoding="utf-8") as f:
-  sequence = f.read()
-  dataset = "".join(line.strip() for line in sequence if line.strip())
-  dataset = dataset.upper()
-  print("sequence length: ", len(dataset))
-  del sequence
-  f.close()
+token = DNATokenizer(encoding=pre_encoding[2])
 
-# sequence = "AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGAACTG"
-# token.build_vocab()
-# token.save("./model")
-# token.load("./model/base_4k.json")
-encoded = token.encode(dataset)
+# with open("data/file.txt", "r", encoding="utf-8") as f:
+#   sequence = f.read()
+#   sequence = "".join(line.strip() for line in sequence if line.strip())
+#   sequence = sequence.upper()
+#   print("sequence length: ", len(sequence))
+#   f.close()
+
+sequence = "AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGAACTG"
+encoded = token.encode(sequence)
 decoded = token.decode(encoded)
+tokenized = token.tokenize(sequence)
 
+print(tokenized)
 print(encoded[:100])
 print(decoded[:400])
-print(decoded == dataset)
+print(decoded == sequence)
 
-# tokenized = token.tokenize(sequence)
-# ids = token.chars_to_ids(tokenized)
-# chars = token.ids_to_chars(ids)
-# print(ids)
-# print(chars)
-# print(token.verify(tokenized, 'model'))
+print(token.vocab_size)
