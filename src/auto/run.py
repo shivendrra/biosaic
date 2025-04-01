@@ -1,50 +1,74 @@
 import torch
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split
 from .model import DNA_VQVAE, ModelConfig
-from .dataset import DNADataset, pad_collate_fn, dna_to_onehot
+from .dataset import Dataset
 import matplotlib.pyplot as plt
 
 # setup
-device = "cuda" if torch.cuda.is_available else "cpu"
-model = DNA_VQVAE(ModelConfig).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
-dataset = DNADataset("file.txt")
+device = torch.device("cuda" if torch.cuda.is_available else "cpu")
+_model = DNA_VQVAE(ModelConfig).to("cpu")
+n_param = sum(p.numel() for p in _model.parameters())/1e6
+print(f"{n_param:.2f} million")
+optimizer = torch.optim.Adam(_model.parameters(), lr=1e-5)
 
 # train-test split
-train_size = int(0.8 * len(dataset))
-test_size = len(dataset) - train_size
-train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+file_path = "/content/drive/MyDrive/dna_data.txt"
+data = Dataset(file_path, ratio=0.2)
+train_data, val_data = data.train_test_split()
+
+# batch training
 epochs = 2000
 loss_history = []
+batch_size = 16
+block_size = 128
+eval_interval = 10
+eval_iters = 5
+learning_rate = 1e-5
 
-# DataLoader
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=pad_collate_fn)
-test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, collate_fn=pad_collate_fn)
+torch.seed(400)
+
+@torch.no_grad()
+def estimate_loss():
+  out = {}
+  _model.eval()
+  for split in ['train', 'val']:
+    losses = torch.zeros(eval_iters)
+    for k in range(eval_iters):
+      X, Y = data.get_batch(split, batch_size, block_size, "cpu")
+      x_recon, vq_loss, _ = _model(X)
+      recon_loss = F.cross_entropy(x_recon.view(-1, 4), Y.view(-1, 4))
+      losses[k] = (recon_loss + vq_loss).item()
+    out[split] = losses.mean()
+  _model.train()
+  return out
 
 for epoch in range(epochs):
-  total_loss = 0
-  for dna_seq in train_loader:
-    optimizer.zero_grad()
-    dna_seq = dna_seq.to(device)
-    x_recon, vq_loss, _ = model(dna_seq)
-    
-    recon_loss = F.cross_entropy(x_recon.view(-1, 4), dna_seq.view(-1, 4))
-    loss = recon_loss + vq_loss
-    loss.backward()
-    optimizer.step()
+  xb, yb = data.get_batch('train', batch_size, block_size, "cpu")
 
-    total_loss += loss.item()
-    if (epoch + 1) % 100 == 0:
-      avg_loss = total_loss / len(train_loader)
-      loss_history.append((epoch + 1, avg_loss))
-      print(f"Epoch {epoch+1}: Loss = {avg_loss:.4f}")
+  optimizer.zero_grad()
+  x_recon, vq_loss, _ = _model(xb)
+  recon_loss = F.cross_entropy(x_recon.view(-1, 4), yb.view(-1, 4))
+  loss = recon_loss + vq_loss
+  optimizer.zero_grad()
+  loss.backward()
+  optimizer.step()
 
-epochs_logged, losses = zip(*loss_history)
+  if (epoch + 1) % eval_interval == 0 or epoch == 0:
+    losses = estimate_loss()
+    print(f"Epoch {epoch+1}: Train Loss = {losses['train']:.4f}, Val Loss = {losses['val']:.4f}")
+    loss_history.append((epoch + 1, losses['train'], losses['val']))
+
+torch.save(_model.state_dict(), f'biosaic_{n_param:.0f}m.pth')
+
+import matplotlib.pyplot as plt
+
+epochs_logged, train_losses, val_losses = zip(*loss_history)
 plt.figure(figsize=(8, 5))
-plt.plot(epochs_logged, losses, marker='o', linestyle='-')
+plt.plot(epochs_logged, train_losses, label="Train Loss", marker='o', linestyle='-')
+plt.plot(epochs_logged, val_losses, label="Val Loss", marker='o', linestyle='--')
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
-plt.title("Training Loss Over Time")
+plt.legend()
+plt.title("Training & Validation Loss Over Time")
 plt.grid(True)
 plt.show()

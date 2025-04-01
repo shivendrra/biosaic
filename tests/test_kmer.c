@@ -9,7 +9,7 @@ void test_tokenization() {
   char** kmers;
   int n_kmers;
 
-  tokenize_sequence(tokenizer, seq, &kmers, &n_kmers);
+  tokenize_sequence(tokenizer, seq, &kmers);
 
   assert(n_kmers == 2); // Check correct k-mer count
   assert(strcmp(kmers[0], "A") == 0);
