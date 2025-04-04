@@ -55,3 +55,40 @@ class KMer(CKMer):
 
   def __del__(self):
     libkmer.free_tokenizer(self._core_tokenizer)
+
+pre_model = ["dna-perchar", "enigma1", "EnBERT", "enigma2"]
+pre_encoding = ["base_2k", "base_3k", "base_4k", "base_5k"]
+
+class DNATokenizer:
+  def __init__(self, encoding:str, model:str=None):
+    if encoding not in pre_encoding:
+      raise ValueError(f"`{encoding}` doesn't exist. Try using the existing encoding!")
+    if model not in pre_model:
+      raise ValueError(f"`{model}` model doesn't exist. maybe try chosing some other model!")
+    self.model = model
+    self.encoding = encoding
+    self.tokenizer = ""
+    self.sp_start_seq = "<b>"
+    self.sp_enc_seq = "</b>"
+    self.sp_pad_seq = "<p>"
+    pass
+
+  def encode(self, sequence):
+    pass
+
+  def decode(self, ids):
+    pass
+
+  def tokenize(self, sequence):
+    pass
+
+  @property
+  def vocab(self):
+    pass
+
+  @property
+  def vocab_size(self):
+    pass
+
+  def __str__(self):
+    return f"Biosaic DNATokenizer <model={self.model}, encoding={self.encoding}>"
