@@ -2,7 +2,6 @@ from .kmer import KMerPy
 # from .auto.tokenizer import tokenizer
 import os
 current_directory = os.path.dirname(os.path.abspath(__file__))
-print("curr: ", current_directory)
 os.chdir(current_directory)
 
 pre_model = ["dna-perchar", "enigma1", "EnBERT", "enigma2"]
