@@ -1,48 +1,23 @@
-with open("data/file.txt", "r", encoding="utf-8") as f:
-  sequence = f.read()
-  sequence = "".join(line.strip() for line in sequence if line.strip())
-  sequence = sequence.upper()
-  print("sequence length: ", len(sequence))
-  f.close()
+import os
+from src import bpe_trainer, split_file
 
-from src import DNATokenizer
+def main():
+  current_directory = os.path.dirname(os.path.abspath(__file__))
+  os.chdir(current_directory)
+  with open("data/chunk_01.txt", "r", encoding="utf-8") as f:
+    dataset = f.readlines()
+    dataset = "".join(line.strip() for line in dataset if line.strip())
+    dataset = dataset.upper()
+    print(f"Loaded training data. Length: {len(dataset)}")
 
-token = DNATokenizer(encoding="base_5k")
+  trainer = bpe_trainer(kmer_size=4)
+  trainer.initialize_vocab()
+  trainer.train(dataset, vocab_size=1276, early_stop=25)
+  # trainer.save("model/dna_vocab", as_json=True)  # saves as json
+  trainer.save("model/dna_vocab", )  # saves as binary
 
-# sequence = "AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGAACTG"
-# encoded = token.encode(sequence)
-# decoded = token.decode(encoded)
-tokenized = token.tokenize(sequence)
-
-# print(encoded[:100])
-# print(decoded[:400])
-# print(decoded == sequence)
-
-# print(token.vocab_size)
-
-import matplotlib.pyplot as plt
-from collections import Counter
-
-def plot_frequency(items):
-  """
-  Computes the frequency of each item in the provided list and displays
-  a bar chart using matplotlib.
-
-  Args:
-    items (list): List of items for which to compute frequency.
-  """
-  freq_counter = Counter(items)
-  # sort items by frequency in descending order
-  sorted_items = sorted(freq_counter.items(), key=lambda x: x[1], reverse=True)
-  labels, frequencies = zip(*sorted_items) if sorted_items else ([], [])
-  
-  plt.figure(figsize=(20, 12))
-  plt.bar(labels, frequencies, color='skyblue')
-  plt.xlabel('Items')
-  plt.ylabel('Frequency')
-  plt.title('Frequency of Items')
-  plt.xticks(rotation=90)
-  plt.tight_layout()
-  plt.show()
-
-plot_frequency(tokenized)
+if __name__ == "__main__":
+  from multiprocessing import freeze_support
+  freeze_support()  # optional, but safe on Windows
+  # split_file(input_path="data/chunk.txt", output_dir="data/", num_files=3)
+  main()
