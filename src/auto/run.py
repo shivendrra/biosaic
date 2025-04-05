@@ -115,7 +115,7 @@ plt.show()
 ## training loop for embedder
 
 import numpy as np
-from .embedder import EmbedderTokenizer, ModelConfig
+from .embedder import Evoformer, ModelConfig
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
 
@@ -143,7 +143,7 @@ msa_train, msa_val   = msa_data[:split], msa_data[split:]
 pair_train, pair_val = pair_data[:split], pair_data[split:]
 
 # ——— 4. Model, Optimizer, Scheduler ———
-model = EmbedderTokenizer(ModelConfig).to(ModelConfig.DEVICE)
+model = Evoformer(ModelConfig).to(ModelConfig.DEVICE)
 opt   = AdamW(model.parameters(), lr=TrainConfig.LR, weight_decay=TrainConfig.WD, amsgrad=TrainConfig.AMS)
 warm  = LambdaLR(opt, lambda e: min((e+1)/TrainConfig.WARMUP, 1.0))
 cos   = CosineAnnealingLR(opt, T_max=TrainConfig.EPOCHS-TrainConfig.WARMUP, eta_min=1e-6)

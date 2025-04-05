@@ -4,7 +4,7 @@ import torch.nn as nn
 class ModelConfig:
   DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   A            = 4        # DNA alphabet
-  C            = 16       # e.g. 16 pair features (you decide)
+  C            = 21       # 21 letter for amino acid & 4 for dna
   d_msa        = 128
   d_pair       = 64
   n_heads      = 8
@@ -43,7 +43,7 @@ class TriMulUpdate(nn.Module):
     # simplistic: new_pair[i,j] += sum_k left[i,k] * right[k,j]
     return pair + torch.einsum("bikd,bkjd->bijd", left, right)
 
-class EvoformerBlock(nn.Module):
+class Block(nn.Module):
   def __init__(self, d_msa, d_pair, n_heads):
     super().__init__()
     self.row_attn = RowAttention(d_msa, n_heads)
@@ -57,7 +57,7 @@ class EvoformerBlock(nn.Module):
     pair= pair + self.tri_mul(pair)
     return msa, pair
 
-class EmbedderTokenizer(nn.Module):
+class Evoformer(nn.Module):
   def __init__(self, params: ModelConfig):
     """
       A: alphabet size (e.g. 4 for DNA, 21 for protein)
@@ -67,7 +67,7 @@ class EmbedderTokenizer(nn.Module):
     self.embed_msa  = nn.Linear(ModelConfig.A, ModelConfig.d_msa)
     self.embed_pair = nn.Linear(ModelConfig.C, ModelConfig.d_pair)
     self.blocks     = nn.ModuleList([
-      EvoformerBlock(ModelConfig.d_msa, ModelConfig.d_pair, ModelConfig.n_heads)
+      Block(ModelConfig.d_msa, ModelConfig.d_pair, ModelConfig.n_heads)
       for _ in range(ModelConfig.n_blocks)
     ])
     # for masked token prediction
