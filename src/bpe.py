@@ -30,20 +30,27 @@ def get_stats(ids):
       total.update(fut.result())
   return total
 
-def _kmer_chunk(seq, k):
-  return [seq[i:i+k] for i in range(len(seq) - k + 1)]
+def _kmer_chunk(start, end, seq, k):
+  return [seq[i:i+k] for i in range(start, end - k + 1)]
 
 def get_kmers(seq, kmer_size=4):
   seq = seq.upper()
   n_procs = max(1, multiprocessing.cpu_count() - 2)
-  chunk = max(1, len(seq) // n_procs)
+  chunk_size = max(1, len(seq) // n_procs)
   futures, kmers = [], []
   with ProcessPoolExecutor(max_workers=n_procs) as exe:
-    for i in range(0, len(seq), chunk):
-      sub = seq[i : i + chunk + kmer_size - 1]
-      futures.append(exe.submit(_kmer_chunk, sub, kmer_size))
+    for i in range(0, len(seq) - kmer_size + 1, chunk_size):
+      start = i
+      end = min(i + chunk_size + kmer_size - 1, len(seq))
+      futures.append(exe.submit(_kmer_chunk, start, end, seq, kmer_size))
     for fut in as_completed(futures):
       kmers.extend(fut.result())
+
+  # adding leftover token if any (1 to k-1 characters at the end)
+  rem = len(seq) % kmer_size
+  if rem:
+    leftover = seq[-rem:]
+    kmers.append(leftover)
   return kmers
 
 def merge(ids, pair, idx):
@@ -73,22 +80,25 @@ def batch_merge(ids, merge_map):
   return out
 
 class bpe_trainer:
-  def __init__(self, kmer_size):
+  def __init__(self, kmer_size, continuous=False):
     self.init_vocab_size = len(DNA_VOCAB)
     self.kmer_size = kmer_size
     self.base_vocab = {}
     self.vocab = {}
-    self.initialize_vocab()
+    self.initialize_vocab(continuous)
+
+  def __str__(self):
+    return f"\t/Biosaic BPE trainer v0.1/\t"
 
   def initialize_vocab(self, continuous=False):
     print("DEBUGG INFO[101] Intializing Vocabs")
     letters = sorted(DNA_VOCAB.keys())
     combos = []
     if continuous:
-      for L in range(1, self.kmer_size+1):
-        combos += product(letters, repeat=L)
+      for L in range(1, self.kmer_size + 1):
+        combos.extend(product(letters, repeat=L))
     else:
-      combos = product(letters, repeat=self.kmer_size)
+      combos = list(product(letters, repeat=self.kmer_size))
     self.base_vocab = {''.join(c): i for i, c in enumerate(combos)}
     self.init_vocab_size = len(self.base_vocab)
     self.vocab = {v: k for k, v in self.base_vocab.items()}
@@ -119,7 +129,7 @@ class bpe_trainer:
 
       top = [p for p in stats.most_common(early_stop) if p[0] not in invalidated_pairs]
       if not top:
-        print("DEBUGG WARN[101] No more pairs to merge.")
+        print("DEBUGG WARN[301] No more pairs to merge.")
         break
 
       merge_map = {}
@@ -146,7 +156,7 @@ class bpe_trainer:
 
       for idx, (pair, freq) in enumerate(top, start=merge_count - len(merge_map) + 1):
         if pair not in merge_map:
-          print(f"DEBUGG INFO[104] Skipping invalid pair {pair}")
+          print(f"DEBUGG WARN[302] Skipping invalid pair {pair}")
           continue
         mid = merge_map[pair]
         print(f"DEBUGG INFO[103] Merging {idx}/{num_merges}: ({pair} -> id {mid}), freq: {freq}")
@@ -157,7 +167,6 @@ class bpe_trainer:
     data = {
       "kmer_size": self.kmer_size,
       "init_vocab_size": self.init_vocab_size,
-      "base_vocab": self.base_vocab,
       "merged_vocab": self.vocab
     }
     if as_json:
@@ -167,3 +176,62 @@ class bpe_trainer:
       with open(path + ".model", "wb") as f:
         pickle.dump(data, f)
     print(f"DEBUGG INFO[104] [Saved] Vocabulary saved to {path + ('.json' if as_json else '.model')}")
+
+class BPE:
+  def __init__(self, encodings:str=None):
+    self.vocab = {}
+    self.inv_vocab = {}
+    self.kmer_size = None
+    if encodings:
+      self.load(encodings)
+
+  def __str__(self):
+    return f"\t/Biosaic BPE tokenizer v0.1/\t"
+
+  def load(self, model_path: str):
+    if model_path.endswith(".json"):
+      with open(model_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    elif model_path.endswith(".model"):
+      with open(model_path, "rb") as f:
+        data = pickle.load(f)
+    else:
+      raise TypeError("Only supports vocab file format `.model` & `.json`")
+
+    self.vocab = data["merged_vocab"]
+    self.kmer_size = data.get("kmer_size", None)
+    self.inv_vocab = {v: k for k, v in self.vocab.items()}
+    print(f"DEBUGG INFO[201] Vocab loaded successfully with {len(self.vocab)} tokens")
+
+  def encode(self, seq: list[str]) -> array:
+    tokens = get_kmers(seq, self.kmer_size)
+    ids = array('I')
+    for tok in tokens:
+      if tok not in self.vocab:
+        raise KeyError(f"Token '{tok}' not in vocabulary")
+      ids.append(self.vocab[tok])
+    return list(ids)
+
+  def decode(self, ids: list[int] | array) -> str:
+    tokens = [self.inv_vocab[i] for i in ids]
+    if not tokens:
+      return ""
+    result = tokens[0]
+    k = self.kmer_size
+    for i in range(1, len(tokens)):
+      prev = tokens[i - 1]
+      curr = tokens[i]
+
+      # find max possible overlap between previous and current
+      overlap = 0
+      for j in range(1, k):
+        if prev[-j:] == curr[:j]:
+          overlap = j
+      result += curr[overlap:]
+    return result
+
+  def token_to_id(self, token: str) -> int:
+    return self.vocab[token]
+
+  def id_to_token(self, idx: int) -> str:
+    return self.inv_vocab[idx]

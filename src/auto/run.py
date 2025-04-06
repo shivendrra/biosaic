@@ -25,7 +25,7 @@ n_param = sum(p.numel() for p in _model.parameters())/1e6
 print(f"{n_param:.2f} million")
 optimizer = torch.optim.Adam(_model.parameters(), lr=TrainConfig.learning_rate, amsgrad=True, weight_decay=1e-5, betas=(0.9, 0.95))
 
-# ——— Learning‑rate Schedulers ———
+# ------ Learning‑rate Schedulers ------
 # 1) Warm‑up: linearly ramp LR from 0 → lr over warmup_epochs
 warmup_scheduler = LambdaLR(
   optimizer,
@@ -79,18 +79,18 @@ for epoch in range(TrainConfig.epochs):
 
   optimizer.zero_grad()
   recon_loss.backward()
-  # — Gradient clipping —
+  # -- Gradient clipping --
   torch.nn.utils.clip_grad_norm_(_model.parameters(), max_norm=1.0)
 
   optimizer.step()
 
-  # — Scheduler step —
+  # -- Scheduler step --
   if epoch < TrainConfig.warmup_epochs:
     warmup_scheduler.step()
   else:
     cosine_scheduler.step()
 
-  # — Logging & eval —
+  # -- Logging & eval --
   if (epoch+1) % TrainConfig.eval_interval == 0:
     losses = estimate_loss()
     print(f"Epoch {epoch+1:4d} | train {losses['train']:.4f}  val {losses['val']:.4f}")
@@ -136,19 +136,19 @@ msa_data  = np.load("msa.npy")   # shape (D, N, L, A)
 pair_data = np.load("pair.npy")  # shape (D, L, L, C)
 assert msa_data.ndim==4 and pair_data.ndim==4
 
-# ——— 3. Train/Val Split ———
+# ------ 3. Train/Val Split ------
 D = msa_data.shape[0]
 split = int(D * 0.85)
 msa_train, msa_val   = msa_data[:split], msa_data[split:]
 pair_train, pair_val = pair_data[:split], pair_data[split:]
 
-# ——— 4. Model, Optimizer, Scheduler ———
+# ------ 4. Model, Optimizer, Scheduler ------
 model = Evoformer(ModelConfig).to(ModelConfig.DEVICE)
 opt   = AdamW(model.parameters(), lr=TrainConfig.LR, weight_decay=TrainConfig.WD, amsgrad=TrainConfig.AMS)
 warm  = LambdaLR(opt, lambda e: min((e+1)/TrainConfig.WARMUP, 1.0))
 cos   = CosineAnnealingLR(opt, T_max=TrainConfig.EPOCHS-TrainConfig.WARMUP, eta_min=1e-6)
 
-# ——— 5. Batch Sampler ———
+# ------ 5. Batch Sampler ------
 def get_batch(split):
   if split=="train":
     msa, pair = msa_train, pair_train
@@ -161,7 +161,7 @@ def get_batch(split):
     torch.tensor(pair[idx], dtype=torch.float32, device=TrainConfig.DEVICE)
   )
 
-# ——— 6. Eval Loss (masked‑token CE) ———
+# ------ 6. Eval Loss (masked‑token CE) ------
 @torch.no_grad()
 def estimate_loss():
   model.eval()
@@ -181,7 +181,7 @@ def estimate_loss():
   model.train()
   return out
 
-# ——— 7. Training Loop ———
+# ------ 7. Training Loop ------
 history = []
 for epoch in range(TrainConfig.EPOCHS):
   M, P = get_batch("train")
@@ -201,7 +201,7 @@ for epoch in range(TrainConfig.EPOCHS):
     print(f"Epoch {epoch+1:4d} | train {losses['train']:.4f}  val {losses['val']:.4f}")
     history.append((epoch+1, losses['train'], losses['val']))
 
-# ——— 8. Save & Plot ———
+# ------ 8. Save & Plot ------
 torch.save(model.state_dict(), "af_tokenizer.pt")
 try:
   import matplotlib.pyplot as plt
