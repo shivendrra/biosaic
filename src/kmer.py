@@ -102,7 +102,7 @@ class KMerPy:
     assert path.endswith('.json')
     with open(path, 'r') as f:
       vocab = json.load(f)
-    print("loaded the vocab!")
+    # print("loaded the vocab!")
 
     # re-initializing the vocabs & neccessary idexings
     self.vocab = vocab
