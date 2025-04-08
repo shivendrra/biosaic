@@ -178,9 +178,10 @@ class bpe_trainer:
     print(f"DEBUGG INFO[104] [Saved] Vocabulary saved to {path + ('.json' if as_json else '.model')}")
 
 class BPE:
-  def __init__(self, encodings:str=None):
-    self.vocab = {}
-    self.inv_vocab = {}
+  def __init__(self, encodings: str = None):
+    self.vocab = {}       # final merged vocabulary; keys are merged token strings, values are IDs
+    self.inv_vocab = {}   # reverse mapping: ID -> token string
+    self.base_vocab = {}  # base vocabulary; keys are base k-mer strings, values are IDs
     self.kmer_size = None
     if encodings:
       self.load(encodings)
@@ -188,7 +189,15 @@ class BPE:
   def __str__(self):
     return f"\t/Biosaic BPE tokenizer v0.1/\t"
 
+  def _base_encode(self, tokens):
+    from array import array
+    arr = array('I')
+    for t in tokens:
+      arr.append(self.base_vocab.get(t, 0))
+    return arr
+
   def load(self, model_path: str):
+    import os, json, pickle
     if model_path.endswith(".json"):
       with open(model_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -197,41 +206,69 @@ class BPE:
         data = pickle.load(f)
     else:
       raise TypeError("Only supports vocab file format `.model` & `.json`")
-
     self.vocab = data["merged_vocab"]
+    self.base_vocab = data["base_vocab"]
     self.kmer_size = data.get("kmer_size", None)
     self.inv_vocab = {v: k for k, v in self.vocab.items()}
     print(f"DEBUGG INFO[201] Vocab loaded successfully with {len(self.vocab)} tokens")
 
-  def encode(self, seq: list[str]) -> array:
-    tokens = get_kmers(seq, self.kmer_size)
-    ids = array('I')
-    for tok in tokens:
-      if tok not in self.vocab:
-        raise KeyError(f"Token '{tok}' not in vocabulary")
-      ids.append(self.vocab[tok])
-    return list(ids)
+  def encode(self, seq: str) -> list[int]:
+    # tokenize the input using get_kmers (which should produce overlapping k-mers)
+    tokens = get_kmers(seq, self.kmer_size)  # tokens is a list of strings
+    # iteratively merge adjacent tokens if possible.
+    # merge rule: for adjacent tokens (a, b), candidate = a + (b[-1])
+    # only merge if candidate exists in self.vocab.
+    while True:
+      merged = []
+      i = 0
+      changed = False
+      while i < len(tokens):
+        # if there's a neighbor, consider merging token[i] with token[i+1]
+        if i < len(tokens) - 1:
+          candidate = tokens[i] + tokens[i+1][-1]
+          if candidate in self.vocab:
+            merged.append(candidate)
+            i += 2
+            changed = True
+            continue
+        # otherwise, just pass the token along unchanged
+        merged.append(tokens[i])
+        i += 1
+      # if no merges occurred in this pass, we're done
+      if not changed:
+        break
+      tokens = merged
+    # finally, convert the merged tokens to their IDs
+    output_ids = []
+    for token in tokens:
+      if token in self.vocab:
+        output_ids.append(self.vocab[token])
+      elif token in self.base_vocab:
+        output_ids.append(self.base_vocab[token])
+      else:
+        output_ids.append(0)  # Fallback for unknown tokens.
+    return output_ids
 
-  def decode(self, ids: list[int] | array) -> str:
-    tokens = [self.inv_vocab[i] for i in ids]
-    if not tokens:
+  def decode(self, ids: list[int] | list) -> str:
+    # convert token IDs back to token strings
+    tokens = [self.inv_vocab.get(i, "") for i in ids]
+    if not tokens or tokens[0] == "":
       return ""
+    # reconstruct the string by stitching together tokens using maximum overlap
     result = tokens[0]
-    k = self.kmer_size
+    k = self.kmer_size or len(tokens[0])
     for i in range(1, len(tokens)):
-      prev = tokens[i - 1]
-      curr = tokens[i]
-
-      # find max possible overlap between previous and current
-      overlap = 0
-      for j in range(1, k):
-        if prev[-j:] == curr[:j]:
-          overlap = j
-      result += curr[overlap:]
+      max_overlap = 0
+      # check overlap from 1 to k characters
+      max_range = min(len(tokens[i-1]), len(tokens[i]), k)
+      for j in range(1, max_range+1):
+        if tokens[i-1][-j:] == tokens[i][:j]:
+          max_overlap = j
+      result += tokens[i][max_overlap:]
     return result
 
   def token_to_id(self, token: str) -> int:
-    return self.vocab[token]
+    return self.vocab.get(token, self.base_vocab.get(token, 0))
 
   def id_to_token(self, idx: int) -> str:
-    return self.inv_vocab[idx]
+    return self.inv_vocab.get(idx, "")
