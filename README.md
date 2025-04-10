@@ -35,8 +35,7 @@ Biosaic(Bio-Mosaic) is a tokenizer library built for [Enigma2](https://github.co
 
 
 ## Usage
-For now, Python version of tokenizer works completely fine & is recommended to be used. C-version still has a lot of bugs & optimization issues.
-And also, this version doesn't support special token tokenization & encodings, because apparently, they don't go well together.
+For now, KMer tokenizer for DNA sequences works properly with no issue so far. VQ-VAE model for DNA sequence tokenization is currently been trained, will take some time to test and deploy. Evoformer is next in queue for training.
 
 #### Fetch Encodings/Models
 

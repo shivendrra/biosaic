@@ -1,5 +1,6 @@
 import os
-from src import tokenizer, get_encodings
+import biosaic
+from biosaic import tokenizer, get_encodings
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_directory)
