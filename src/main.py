@@ -1,5 +1,5 @@
-from .kmer import KMerPy
-# from .auto.tokenizer import tokenizer
+from .kmer import KMer
+from .auto.tokenizer import AFTokenizer, VQTokenizer
 import os
 current_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_directory)
@@ -21,14 +21,14 @@ class DNATokenizer:
 
     # switch tokenizer based on model selection
     if model in ["dna-perchar", "enigma1"]:
-      self.tokenizer = KMerPy(kmer_size=1)  # swapped the C-version of PerChar with normal KMer class with size=1
+      self.tokenizer = KMer(kmer_size=1)  # swapped the C-version of PerChar with normal KMer class with size=1
     else:
       # extract kmer size from encoding string e.g. base_4k -> 4
       try:
         kmer_size = int(encoding.split('_')[1].replace('k',''))
       except (IndexError, ValueError):
         raise ValueError("encoding format invalid, should be like 'base_4k'")
-      self.tokenizer = KMerPy(kmer_size=kmer_size)
+      self.tokenizer = KMer(kmer_size=kmer_size)
       vocab_path = os.path.join(current_directory, "vocabs", f"{encoding}.json") # attempt to load vocab from vocabs directory
       if os.path.exists(vocab_path):
         self.tokenizer.load(vocab_path)
