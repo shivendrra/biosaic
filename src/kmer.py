@@ -1,6 +1,6 @@
 from itertools import product
 import json, pickle
-import os
+import os, io, requests, tempfile, urllib
 
 class KMer:
   def __init__(self, kmer_size:int=4):
@@ -100,6 +100,15 @@ class KMer:
       print(f"DEBUGG INFO[104] [Saved] Vocabulary saved to {path + ('.json' if as_json else '.model')}")
 
   def load(self, model_path: str):
+    def is_url(path):
+      return path.startswith("http://") or path.startswith("https://")
+
+    if is_url(model_path):
+      # print(f"DEBUGG INFO[200] Fetching remote model from: {model_path}")
+      with tempfile.NamedTemporaryFile(delete=False, suffix=".model" if model_path.endswith(".model") else ".json") as tmp_file:
+        urllib.request.urlretrieve(model_path.replace("blob/", ""), tmp_file.name)
+        model_path = tmp_file.name
+
     if model_path.endswith(".json"):
       with open(model_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -113,4 +122,4 @@ class KMer:
     self.vocab_size = data.get("vocab_size", None)
     self.kmer_size = data.get("kmer_size", None)
     self.ids_to_token = {v: k for k, v in self.vocab.items()}
-    print(f"DEBUGG INFO[201] Vocab loaded successfully with {self.vocab_size} size")
+    # print(f"DEBUGG INFO[201] Vocab loaded successfully with {self.vocab_size} size")
