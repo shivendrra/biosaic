@@ -1,5 +1,4 @@
-from .kmer import KMerPy
-# from .auto.tokenizer import tokenizer
+from .kmer import KMer
 import os
 current_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_directory)
@@ -8,57 +7,39 @@ pre_model = ["dna-perchar", "enigma1", "EnBERT", "enigma2"]
 pre_encoding = ["base_1k", "base_2k", "base_3k", "base_4k", "base_5k"]
 pre_mode = ["kmer", "bpe", "vae"]
 
-class DNATokenizer:
-  def __init__(self, encoding:str, mode:str="kmer", model:str=None):
+main_base_url = "https://github.com/shivendrra/biosaic/blob/main/model/"  # fetches from main branch
+dev_base_url = "https://raw.githubusercontent.com/shivendrra/biosaic/dev/model/"  # fetches from dev branch
+hugginface_url = "https://huggingface.co/shivendrra/BiosaicTokenizer/resolve/main/kmers/"  # fetches from huggingface librrary
+
+class tokenizer:
+  def __init__(self, encoding:str):
     if encoding not in pre_encoding:
       raise ValueError(f"`{encoding}` doesn't exist try using the existing encoding!")
-    if mode not in pre_mode:
-      raise ValueError(f"`{mode}` doesn't exist try using the existing modes!")
-    if model is not None and model not in pre_model:
-      raise ValueError(f"`{model}` model doesn't exist maybe try choosing some other model!")
-    
-    self.model, self.encoding, self.mode = model, encoding, mode
-
-    # switch tokenizer based on model selection
-    if model in ["dna-perchar", "enigma1"]:
-      self.tokenizer = KMerPy(kmer_size=1)  # swapped the C-version of PerChar with normal KMer class with size=1
-    else:
-      # extract kmer size from encoding string e.g. base_4k -> 4
-      try:
-        kmer_size = int(encoding.split('_')[1].replace('k',''))
-      except (IndexError, ValueError):
-        raise ValueError("encoding format invalid, should be like 'base_4k'")
-      self.tokenizer = KMerPy(kmer_size=kmer_size)
-      vocab_path = os.path.join(current_directory, "vocabs", f"{encoding}.json") # attempt to load vocab from vocabs directory
-      if os.path.exists(vocab_path):
-        self.tokenizer.load(vocab_path)
-      else:
-        print("Error loading the vocabs, building vocabs!")
-        self.tokenizer.build_vocab()  # build vocab if vocab file not found
+    self.encoding = encoding
+    get_encoding_path = dev_base_url + encoding + ".model"
+    self.kmer_size = int(encoding.split('_')[1].replace('k',''))
+    self._tokenizer = KMer(self.kmer_size)
+    self._tokenizer.load(model_path=get_encoding_path)
 
   def encode(self, sequence):
-    return self.tokenizer.encode(sequence)
+    return self._tokenizer.encode(sequence)
 
   def decode(self, ids):
-    return self.tokenizer.decode(ids)
+    return self._tokenizer.decode(ids)
 
   def tokenize(self, sequence):
-    if self.mode == "vae":
-      raise TypeError("Function only available for the `kmer` & `bpe` modes!")
-    return self.tokenizer.tokenize(sequence)
+    return self._tokenizer.tokenize(sequence)
 
-  def one_hot_encode(self, sequence):
-    if self.mode != "vae":
-      raise TypeError("Function only available for the `VAE` mode!")
-    return self.tokenizer.dna_to_onehot(sequence)
+  def detokenize(self, ids):
+    return self._tokenizer.detokenize(ids)
 
   @property
   def vocab(self):
-    return self.tokenizer.vocab
+    return self._tokenizer.vocab
 
   @property
   def vocab_size(self):
-    return self.tokenizer.vocab_size
+    return self._tokenizer.vocab_size
 
   def __str__(self):
-    return f"biosaic DNATokenizer <mode={self.mode}, encoding={self.encoding}>"
+    return f"biosaic.tokenizer <kmer_size={self.kmer_size}, encoding={self.encoding}>"
