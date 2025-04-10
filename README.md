@@ -1,112 +1,108 @@
-# Biosaic Tokenizer
-
+# Biosaic
 ## Overview
-
-The Biosaic KMer Tokenizer is a sequence-processing library designed for bioinformatics applications. It tokenizes DNA sequences into k-mers (subsequences of length `k`) and encodes these tokens into unique IDs for further processing. Additionally, the library provides decoding, vocabulary management, and serialization functionality.
+Biosaic(Bio-Mosaic) is a tokenizer library built for [Enigma2](https://github.com/shivendrra/enigma2). It contains: Tokenizer, Embedder for DNA & Amino Acid Protein Sequences. Has a VQ-VAE & Evoformer architecture based encoders that could convert sequences into embeddings and vice-versa for model training use-case.
 
 ## Features
-
-- **Tokenization**: Converts input sequences into k-mers.
-- **Encoding**: Maps k-mers to unique integer IDs.
-- **Decoding**: Reconstructs sequences from encoded IDs.
-- **Vocabulary Building**: Generates a vocabulary of all possible k-mers and special tokens.
-- **Serialization**: Saves and loads tokenizers for reuse.
-- **Support for Special Tokens**: Includes special tokens like masking, padding, start, end, and separator.
+- **Tokenization:** converts the sequences into K-Mers. *(for DNA only)*
+- **Encoding:** converts sequences into embeddings for classification, training purposes.
+- **Easy use:** it's very basic and easy to use library.
+- **SoTA encoder:** Evoformer & VQ-VAE model are inspired from the [AlphaFold-2](https://www.biorxiv.org/content/10.1101/2024.12.02.626366v1.full)
 
 ## Prerequisites
-
 ### System Requirements
-
 - **Operating System**: Linux, macOS, or Windows with support for GCC or Clang.
 - **Python**: Version 3.7 or higher.
-- **C Compiler**: GCC or Clang for compiling the C library.
 
 ### Dependencies
-
 - **Python Modules**:
-  - `ctypes`: For interfacing Python with the C library.
-  - `os`: For file and path handling.
-- **C Libraries**:
-  - Standard C libraries for memory allocation and string handling.
+  - `pickle`: for loading and saving model files.
+  - `os`: for file and path handling.
+  - `urllib`: for loading the vocabs from repo.
+  - `tempfile`: for loading the vocabs from repo.
+  - `torch`: for using the encoders.
 
 ## Installation
+#### 1. From PyPI:
+```cmd
+	pip install biosaic
+```
 
-1. **Clone the Repository**:
+#### 2. Clone the Repo:
+```bash
+	git clone https://github.com/shivendrra/biosaic.git
+	cd biosaic
+```
 
-   ```bash
-   git clone https://github.com/shivendrra/biosaic.git
-   cd biosaic
-   ```
-
-2. **Compile the C Library**:
-   Navigate to the `src` directory and compile the C code:
-
-   ```bash
-   cd src
-   gcc -shared -o build/libkmer.so -fPIC kmer.c
-   ```
-
-3. **Run the Python Script**:
-   Test the tokenizer using the `main.py` script:
-
-   ```bash
-   python src/main.py
-   ```
 
 ## Usage
-
 For now, Python version of tokenizer works completely fine & is recommended to be used. C-version still has a lot of bugs & optimization issues.
 And also, this version doesn't support special token tokenization & encodings, because apparently, they don't go well together.
+
+#### Fetch Encodings/Models
+
+```python
+import biosaic
+from biosaic import get_encodings, get_models
+
+print("available models: ", get_models)
+print("available encodings: ", get_encodings)
+```
+
+#### ***Output***
+
+```cmd
+available models:  ['dna-perchar', 'enigma1', 'EnBERT', 'enigma2']
+available encodings:  ['base_1k', 'base_2k', 'base_3k', 'base_4k', 'base_5k']
+```
 
 Create an instance of the tokenizer with a specified k-mer size, & split them into tokens, encode & decode them fastly:
 
 ```python
-from src.kmer import KMerPy
+import biosaic
+from biosaic import tokenizer
 
-token = KMerPy(kmer_size=4)
+token = tokenizer(encoding=get_encodings[2])
+print(token.vocab_size)
 
-tokenizer = KMer(kmer=4)
-token.build_vocab()
-sequence = "AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGAACTG"
-token.save("./model")
-token.load("./model/base_4k.json")
+sequence = "TCTTACATAGAAAGGAGCGGTATTTGGTATGAATTTATTTGCAACTGACTG"
 encoded = token.encode(sequence)
 decoded = token.decode(encoded)
-print("Tokenized sequence: ", token.tokenize(sequence))
+tokenized = token.tokenize(sequence)
 
-print("Encoded sequence:", encoded)
-print("Decoded sequence:", decoded)
-print("decoded string matches the original string:", decoded == sequence)
+print(tokenized)
+print(encoded[:100])
+print(decoded[:300])
+print(decoded == sequence)
 ```
 
-## Debugging
+#### ***Output***
 
-1. Use `valgrind` (Linux) or similar tools to detect memory issues:
+```cmd
+84
 
-   ```bash
-   valgrind --leak-check=full ./build/libkmer.so
-   ```
+['TCT', 'CTT', 'TTA', 'TAC', 'ACA', 'CAT', 'ATA', 'TAG', 'AGA', 'GAA', 'AAA', 'AAG', 'AGG', 'GGA', 'GAG', 'AGC', 'GCG', 'CGG', 'GGT', 'GTA', 'TAT', 'ATT', 'TTT', 'TTG', 'TGG', 'GGT', 'GTA', 'TAT', 'ATG', 'TGA', 'GAA', 'AAT', 'ATT', 'TTT', 'TTA', 'TAT', 'ATT', 'TTT', 'TTG', 'TGC', 'GCA', 'CAA', 'AAC', 'ACT', 'CTG', 'TGA', 'GAC', 'ACT', 'CTG', 'TG', 'G']
 
-2. Enable verbose logging in the Python script to trace issues.
+[75, 51, 80, 69, 24, 39, 32, 70, 28, 52, 20, 22, 30, 60, 54, 29, 58, 46, 63, 64, 71, 35, 83, 82, 78, 63, 64, 71, 34, 76, 52, 23, 35, 83, 80, 71, 35, 83, 82, 77, 56, 36, 21, 27, 50, 76, 53, 27, 50, 18, 2]
+
+TCTTACATAGAAAGGAGCGGTATTTGGTATGAATTTATTTGCAACTGACTG
+
+True
+```
 
 ## Contributing
-
 1. Fork the repository.
 
 2. Create a feature branch:
-
    ```bash
    git checkout -b feature-name
    ```
 
 3. Commit your changes:
-
    ```bash
    git commit -m "Add feature"
    ```
 
 4. Push to the branch:
-
    ```bash
    git push origin feature-name
    ```
@@ -114,5 +110,4 @@ print("decoded string matches the original string:", decoded == sequence)
 5. Create a pull request.
 
 ## License
-
 This project is licensed under the MIT License. See the `LICENSE` file for details.
