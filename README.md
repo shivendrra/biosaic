@@ -23,15 +23,15 @@ Biosaic(Bio-Mosaic) is a tokenizer library built for [Enigma2](https://github.co
 
 ## Installation
 #### 1. From PyPI:
-```cmd
+   ```cmd
 	pip install biosaic
-```
+   ```
 
 #### 2. Clone the Repo:
-```bash
+   ```bash
 	git clone https://github.com/shivendrra/biosaic.git
 	cd biosaic
-```
+   ```
 
 
 ## Usage
