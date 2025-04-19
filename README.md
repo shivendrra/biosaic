@@ -79,9 +79,9 @@ print(decoded == sequence)
 ```cmd
 84
 
-['TCT', 'CTT', 'TTA', 'TAC', 'ACA', 'CAT', 'ATA', 'TAG', 'AGA', 'GAA', 'AAA', 'AAG', 'AGG', 'GGA', 'GAG', 'AGC', 'GCG', 'CGG', 'GGT', 'GTA', 'TAT', 'ATT', 'TTT', 'TTG', 'TGG', 'GGT', 'GTA', 'TAT', 'ATG', 'TGA', 'GAA', 'AAT', 'ATT', 'TTT', 'TTA', 'TAT', 'ATT', 'TTT', 'TTG', 'TGC', 'GCA', 'CAA', 'AAC', 'ACT', 'CTG', 'TGA', 'GAC', 'ACT', 'CTG', 'TG', 'G']
+['TCT', 'CTT', 'TTA', 'TAC', 'ACA', 'CAT', 'ATA', 'TAG', 'AGA', 'GAA', 'AAA', 'AAG', 'AGG', 'GGA', 'GAG', 'AGC', 'GCG', 'CGG', 'GGT', 'GTA', 'TAT', 'ATT', 'TTT', 'TTG', 'TGG', 'GGT', 'GTA', 'TAT', 'ATG', 'TGA', 'GAA', 'AAT', 'ATT', 'TTT', 'TTA', 'TAT', 'ATT', 'TTT', 'TTG', 'TGC', 'GCA', 'CAA', 'AAC', 'ACT', 'CTG', 'TGA', 'GAC', 'ACT', 'CTG']
 
-[75, 51, 80, 69, 24, 39, 32, 70, 28, 52, 20, 22, 30, 60, 54, 29, 58, 46, 63, 64, 71, 35, 83, 82, 78, 63, 64, 71, 34, 76, 52, 23, 35, 83, 80, 71, 35, 83, 82, 77, 56, 36, 21, 27, 50, 76, 53, 27, 50, 18, 2]
+[75, 51, 80, 69, 24, 39, 32, 70, 28, 52, 20, 22, 30, 60, 54, 29, 58, 46, 63, 64, 71, 35, 83, 82, 78, 63, 64, 71, 34, 76, 52, 23, 35, 83, 80, 71, 35, 83, 82, 77, 56, 36, 21, 27, 50, 76, 53, 27, 50]
 
 TCTTACATAGAAAGGAGCGGTATTTGGTATGAATTTATTTGCAACTGACTG
 
