@@ -167,6 +167,7 @@ class bpe_trainer:
     data = {
       "kmer_size": self.kmer_size,
       "init_vocab_size": self.init_vocab_size,
+      "base_vocab": self.base_vocab,
       "merged_vocab": self.vocab
     }
     if as_json:
@@ -215,6 +216,7 @@ class BPE:
   def encode(self, seq: str) -> list[int]:
     # tokenize the input using get_kmers (which should produce overlapping k-mers)
     tokens = get_kmers(seq, self.kmer_size)  # tokens is a list of strings
+    # ids = self._base_encode(tokens)
     # iteratively merge adjacent tokens if possible.
     # merge rule: for adjacent tokens (a, b), candidate = a + (b[-1])
     # only merge if candidate exists in self.vocab.
