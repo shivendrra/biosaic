@@ -16,7 +16,9 @@ class KMer:
 
   def tokenize(self, sequence):
     sequence = sequence.upper() # ensures sequence entered is upper-cased
-    return [sequence[i:i+self.kmer_size] for i in range(len(sequence))]
+    if any(ch not in self.base_chars for ch in sequence):
+      raise ValueError("Invalid character in DNA sequence")
+    return [sequence[i:i+self.kmer_size] for i in range(len(sequence) - self.kmer_size + 1)]
 
   def detokenize(self, ids):
     return "".join(ids[i][0] for i in range(len(ids))) + ids[-1][1:]
