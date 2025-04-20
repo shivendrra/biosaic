@@ -4,7 +4,7 @@ from biosaic import tokenizer
 token = tokenizer(encoding=biosaic.get_encodings[2])
 print(token.vocab_size)
 
-sequence = "TCTTACATAGAAAGGAGCGGTATTTGGTATGAATTTATTTGCAACTGACTG"
+sequence = "TCTTACATAGAAAGGAGCGGTATTTGGTA1TGAATTTATTTGCAACTGACTG"
 encoded = token.encode(sequence)
 decoded = token.decode(encoded)
 tokenized = token.tokenize(sequence)

@@ -1,48 +1,51 @@
 import torch
 from torch.nn import functional as F
 from .model import DNA_VQVAE, ModelConfig
+import biosaic
+from typing import *
 
-# --- DEVICE ---
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-DNA_VOCAB = {"A": 0, "T": 1, "C": 2, "G": 3}
-INDEX_TO_DNA = {0: 'A', 1: 'C', 2: 'G', 3: 'T'}
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class VQTokenizer:
-  def __init__(self, model_path):
-    self.vocab = DNA_VOCAB
-    self.ids_to_dna = INDEX_TO_DNA
-    self.DEVICE = DEVICE
-    self.model = DNA_VQVAE(ModelConfig).to(DEVICE)
-    self.model.load_state_dict(torch.load(model_path, map_location=DEVICE))
-    self.model.eval()
+  def __init__(self, kmer:int, device:str="cpu"):
+    self.device, self.kmer = device, kmer
+    if kmer < 6:
+      self._tokenizer = biosaic.tokenizer(encoding=biosaic.get_encodings[kmer-1])
+    else:
+      raise ValueError(f"KMer size till 5 only supported!!")
+    self._model = DNA_VQVAE(ModelConfig).to(self.device)
+    model_path = '/content/drive/MyDrive/biosaic_30m.pth'
+    self._model.load_state_dict(torch.load(model_path, map_location=self.device))
+    self._model.eval()
 
   def __str__(self):
-    return f"\t/Biosaic VQ-VAE tokenizer v1.0.0/\t"
+    return f"\t/Biosaic VQ-VAE tokenizer v1.0.1/\t"
 
-  def dna_to_onehot(self, seq):
-    seq_idx = [DNA_VOCAB[char] for char in seq]
-    one_hot = F.one_hot(torch.tensor(seq_idx), num_classes=4)
-    return one_hot.float()
+  def tokens_to_onehot(self, ids: Union[List[int], torch.Tensor]) -> torch.Tensor:
+    # Convert list of token IDs into one-hot encoded tensor of shape (N, vocab_size)
+    if isinstance(ids, list):
+      ids = torch.tensor(ids, dtype=torch.long)
+    return F.one_hot(ids, num_classes=self.n_classes).float() # shape (L, n_classes)
 
-  def onehot_to_dna(self, logits):
-    decoded_out = torch.argmax(logits, dim=-1)
-    decoded = ''.join(self.ids_to_dna[idx.item()] for idx in decoded_out.squeeze(0))
-    return decoded
+  def onehot_to_tokens(self, one_hot: torch.Tensor) -> List[int]:
+    # Convert one-hot tensor back to list of token IDs
+    if one_hot.dim() != 2 or one_hot.size(1) != self.tokenizer.vocab_size:
+      raise ValueError(f"Expected one-hot of shape (N, {self.tokenizer.vocab_size})")
+    return torch.argmax(one_hot, dim=-1).tolist()
 
-  def encode(self, seq: str):
-    one_hot_seq = self.dna_to_onehot(seq).unsqueeze(0).to(DEVICE)
-    _, _, tokens = self.model(one_hot_seq)
+  def encode(self, seq):
+    seq = self._tokenizer.encode(seq)
+    one_hot_seq = self.tokens_to_onehot(seq).unsqueeze(0).to(self.device)
+    _, _, tokens = self._model(one_hot_seq)
     return tokens.sequeeze(0).cpu().numpy()
 
-  def decode(self, tokens: list):
-    tokens = torch.tensor(tokens, dtype=torch.long).to(DEVICE)
-    z_q = self.model.vq_layer.embeddings(tokens)
-
+  def decode(self, ids):
+    tokens = torch.tensor(tokens, dtype=torch.long).to(self.device)
+    z_q = self._model.vq_layer.embeddings(tokens)
     with torch.no_grad():
-      logits = self.model.decoder(z_q)
-    decoded = self.onehot_to_dna(logits)
-    return decoded
+      logits = self._model.decoder(z_q)
+    decoded = self.onehot_to_tokens(logits)
+    return self._tokenizer.decode(ids)
 
 from .embedder import Evoformer, ModelConfig
 
