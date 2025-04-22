@@ -47,7 +47,7 @@ class Dataset:
 
     # Remove empty lines, strip whitespace, and join into one continuous string.
     formatted_data = "".join(line.strip() for line in raw_lines if line.strip())
-    self.data = formatted_data[:100000].upper()
+    self.data = formatted_data.upper()
 
   def tokenize(self, seq: str) -> List[str]:
     return self.tokenizer.tokenize(seq)
