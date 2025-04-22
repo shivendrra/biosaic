@@ -11,8 +11,7 @@ class KMer:
     # Calculate the sum of powers of 5 from 4^0 to 4^5 (i.e., 4^0 + 4^1 + 4^2 + 4^3 + 4^4 + 4^5)
     # The range(6) generates numbers from 0 to 5, and for each i, we compute 4 ** i.
     # subtracting 1 from total to adjust the size
-    self.vocab_size = 0
-    self.vocab_size += sum(len(self.base_chars) ** i for i in range(self.kmer_size+1)) - 1
+    self.vocab_size = len(self.base_chars) ** kmer_size
 
   def tokenize(self, sequence):
     sequence = sequence.upper() # ensures sequence entered is upper-cased
@@ -23,15 +22,16 @@ class KMer:
   def detokenize(self, ids):
     return "".join(ids[i][0] for i in range(len(ids))) + ids[-1][1:]
 
-  def build_vocab(self):
-    index = 0
-    chars = sorted(self.base_chars)
-    for k in range(1, self.kmer_size + 1):
-      for combination in product(chars, repeat=k):
-        token = ''.join(combination)
-        self.vocab[token] = index
-        self.ids_to_token[index] = token
-        index += 1
+  def build_vocab(self, continuous=False):
+    letters, combos = sorted(self.base_chars), []
+    if continuous:
+      for L in range(1, self.kmer_size + 1):
+        combos.extend(product(letters, repeat=L))
+    else:
+      combos = list(product(letters, repeat=self.kmer_size))
+    self.vocab = {''.join(c): i for i, c in enumerate(combos)}
+    self.ids_to_token = {v: k for k, v in self.vocab.items()}
+    self.vocab_size = len(self.vocab.items())
 
   def encode(self, sequence):
     tokenized_data = self.tokenize(sequence)
