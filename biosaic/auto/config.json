@@ -1,0 +1,44 @@
+[
+  {
+    "VQ_VAE": {
+      "ModelConfig": {
+        "d_model": 768,
+        "beta": 0.15,
+        "dropout": 0.25,
+        "in_dim": 256,
+        "n_heads": 16,
+        "n_layers": 12
+      },
+      "TrainConfig": {
+        "device": "cuda",
+        "learn_rate": 1e-4,
+        "adams": true,
+        "warmup": 50,
+        "epochs": 5000,
+        "batch_size": 30,
+        "block_size": 512
+      }
+    },
+    "EvoFormer": {
+      "ModelConfig": {
+        "A": 4,
+        "C": 21,
+        "d_msa": 768,
+        "d_pair": 768,
+        "n_heads": 32,
+        "n_blocks": 38
+      },
+      "TrainConfig": {
+        "device": "cuda",
+        "learn_rate": 1e-4,
+        "adams": true,
+        "warmup": 50,
+        "epochs": 5000,
+        "msa_seq": 32,
+        "l_seq": 256,
+        "eval_iters": 50,
+        "eval_intervals": 100
+      }
+    }
+  }
+]
