@@ -5,6 +5,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+test.py
+extra.py
+
 # Distribution / packaging
 .Python
 develop-eggs/
