@@ -12,15 +12,15 @@ class TrainConfig:
   weight_decay  = 1e-4
   amsgrad       = True
   warmup_epochs = 50           # linear warm‑up
-  epochs        = 2000
+  epochs        = 5000
   eval_interval = 100
-  eval_iters    = 30
-  batch_size    = 6
+  eval_iters    = 50
+  batch_size    = 12
   block_size    = 256
 loss_history  = []
 
 # setup
-_model = DNA_VQVAE(ModelConfig).to("cpu")
+_model = DNA_VQVAE(ModelConfig).to(TrainConfig.device)
 n_param = sum(p.numel() for p in _model.parameters())/1e6
 print(f"{n_param:.2f} million")
 optimizer = torch.optim.Adam(_model.parameters(), lr=TrainConfig.learning_rate, amsgrad=True, weight_decay=1e-5, betas=(0.9, 0.95))
@@ -40,16 +40,7 @@ cosine_scheduler = CosineAnnealingLR(
 
 # train-test split
 file_path = "/content/drive/MyDrive/dna_data.txt"
-data = Dataset(file_path, ratio=0.2)
-train_data, val_data = data.train_test_split()
-
-torch.manual_seed(400)
-def get_batch(split):
-  data = train_data if split == 'train' else val_data
-  ix = torch.randint(len(data) - TrainConfig.block_size, (TrainConfig.batch_size,))
-  x = torch.stack([data[i:i+TrainConfig.block_size] for i in ix]).float()  # Convert to float
-  y = torch.stack([data[i+1:i+TrainConfig.block_size+1] for i in ix]).float()  # Convert to float
-  return x.to("cpu"), y.to("cpu")
+data = Dataset(path=file_path, kmer=4, ratio=0.2, random_seed=1200)
 
 @torch.no_grad()
 def estimate_loss():
@@ -58,7 +49,7 @@ def estimate_loss():
   for split in ['train', 'val']:
     losses = torch.zeros(TrainConfig.eval_iters)
     for k in range(TrainConfig.eval_iters):
-      X, Y = get_batch(split)
+      X, Y = data.get_batch(split, batch_size=TrainConfig.batch_size, block_size=TrainConfig.block_size)
       x_recon, vq_loss, _ = _model(X)
       recon_loss = F.cross_entropy(x_recon.view(-1, 4), Y.view(-1, 4))
       losses[k] = (recon_loss + vq_loss).item()
@@ -70,15 +61,19 @@ import timeit
 
 start_time = timeit.default_timer()
 for epoch in range(TrainConfig.epochs):
-  xb, yb = get_batch('train')
+  xb, yb = data.get_batch('train')
 
+  iter_start_time = timeit.default_timer()
   x_recon, vq_loss, _ = _model(xb)
+  iter_stop_time = timeit.default_timer()
   recon_ce  = F.cross_entropy(x_recon.view(-1,4), yb.view(-1,4))
   recon_mse = F.mse_loss(torch.softmax(x_recon, dim=-1), yb)
   recon_loss = recon_ce + 0.5*recon_mse
 
+  backward_start_time = timeit.default_timer()
   optimizer.zero_grad()
   recon_loss.backward()
+  backward_stop_time = timeit.default_timer()
   # -- Gradient clipping --
   torch.nn.utils.clip_grad_norm_(_model.parameters(), max_norm=1.0)
 
@@ -93,7 +88,9 @@ for epoch in range(TrainConfig.epochs):
   # -- Logging & eval --
   if (epoch+1) % TrainConfig.eval_interval == 0:
     losses = estimate_loss()
-    print(f"Epoch {epoch+1:4d} | train {losses['train']:.4f}  val {losses['val']:.4f}")
+    print(f"Epoch {epoch+1:4d} | train {losses['train']:.4f}  val {losses['val']:.4f} | "
+      f"time/iters: {(iter_stop_time - iter_start_time)*1000:.2f}ms | "
+      f"backward/iters: {(backward_stop_time - backward_start_time)*1000:.2f}ms")
     loss_history.append((epoch+1, losses['train'], losses['val']))
 
 end_time = timeit.default_timer()

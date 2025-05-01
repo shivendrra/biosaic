@@ -21,7 +21,7 @@ class encoder(nn.Module):
     x = self.embed(x)
     x = x.permute(1, 0, 2)  # (L, B, d_model)
     z_e = self.encoder(x) # Transformer encoding
-    return z_e.permute(1, 0, 2) # Back to (B, L, 4)
+    return z_e.permute(1, 0, 2) # Back to (B, L, vocab_size)
 
 class decoder(nn.Module):
   def __init__(self, d_model, _out, n_layers, n_heads):
@@ -30,12 +30,12 @@ class decoder(nn.Module):
       nn.TransformerDecoderLayer(d_model=d_model, nhead=n_heads),
       num_layers=n_layers
     )
-    self.fc_out = nn.Linear(d_model, _out)  # Output logits (4 classes)
+    self.fc_out = nn.Linear(d_model, _out)  # Output logits
 
   def forward(self, z_q):
     z_q = z_q.permute(1, 0, 2)  # (L, B, d_model)
     x_recon = self.decoder(z_q, z_q)  # Transformer decoding
-    x_recon = self.fc_out(x_recon.permute(1, 0, 2))  # Back to (B, L, 4)
+    x_recon = self.fc_out(x_recon.permute(1, 0, 2))  # Back to (B, L, vocab_size)
     return x_recon
 
 class Quantizer(nn.Module):
