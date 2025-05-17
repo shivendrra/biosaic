@@ -1,6 +1,7 @@
 # Biosaic
 ## Overview
 Biosaic(Bio-Mosaic) is a tokenizer library built for [Enigma2](https://github.com/shivendrra/enigma2). It contains: Tokenizer, Embedder for DNA & Amino Acid Protein Sequences. Has a VQ-VAE & Evoformer architecture based encoders that could convert sequences into embeddings and vice-versa for model training use-case.
+Newer version has been moved to: [DEVS/Biosaic](https://github.com/delveopers/Biosaic/), contribute to this repo for further features
 
 ## Features
 - **Tokenization:** converts the sequences into K-Mers. *(for DNA only)*
@@ -87,26 +88,6 @@ TCTTACATAGAAAGGAGCGGTATTTGGTATGAATTTATTTGCAACTGACTG
 
 True
 ```
-
-## Contributing
-1. Fork the repository.
-
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature-name
-   ```
-
-3. Commit your changes:
-   ```bash
-   git commit -m "Add feature"
-   ```
-
-4. Push to the branch:
-   ```bash
-   git push origin feature-name
-   ```
-
-5. Create a pull request.
 
 ## License
 This project is licensed under the MIT License. See the `LICENSE` file for details.
